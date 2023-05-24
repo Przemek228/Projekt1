@@ -1,0 +1,33 @@
+name: Projekt konwertera
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Pobierz kod źródłowy
+      uses: actions/checkout@v2
+
+    - name: Skonfiguruj i zainstaluj potrzebne komponenty
+      shell: powershell
+      run: |
+        .\installResources.ps1
+
+    - name: Buduj plik .exe
+      shell: powershell
+      run: |
+        pyinstaller --onefile --noconsole Task9.py
+
+    - name: Prześlij plik .exe na repozytorium GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        name: Konwerter
+        path: exe/
