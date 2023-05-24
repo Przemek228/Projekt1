@@ -1,0 +1,148 @@
+import json
+import yaml
+import xml.etree.ElementTree as ET
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
+
+def load_json_file(file_path):
+    try:
+        with open(file_path) as file:
+            data = json.load(file)
+        messagebox.showinfo("Wczytywanie danych", "Dane zostały wczytane z pliku JSON.")
+        return data
+    except FileNotFoundError:
+        messagebox.showerror("Błąd", "Nie znaleziono pliku.")
+        return None
+    except json.JSONDecodeError as e:
+        messagebox.showerror("Błąd", f"Niepoprawna składnia pliku JSON. Błąd: {e}")
+        return None
+
+
+def load_yaml_file(file_path):
+    try:
+        with open(file_path) as file:
+            data = yaml.safe_load(file)
+        messagebox.showinfo("Wczytywanie danych", "Dane zostały wczytane z pliku YAML.")
+        return data
+    except FileNotFoundError:
+        messagebox.showerror("Błąd", "Nie znaleziono pliku.")
+        return None
+    except yaml.YAMLError as e:
+        messagebox.showerror("Błąd", f"Niepoprawna składnia pliku YAML. Błąd: {e}")
+        return None
+
+
+def load_xml_file(file_path):
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+        messagebox.showinfo("Wczytywanie danych", "Dane zostały wczytane z pliku XML.")
+        return root
+    except FileNotFoundError:
+        messagebox.showerror("Błąd", "Nie znaleziono pliku.")
+        return None
+    except ET.ParseError as e:
+        messagebox.showerror("Błąd", f"Niepoprawna składnia pliku XML. Błąd: {e}")
+        return None
+
+
+def save_json_file(file_path, data):
+    try:
+        with open(file_path, 'w') as file:
+            json.dump(data, file, indent=4)
+        messagebox.showinfo("Zapisywanie danych", "Dane zostały zapisane do pliku JSON.")
+    except FileNotFoundError:
+        messagebox.showerror("Błąd", "Nie znaleziono pliku.")
+    except Exception as e:
+        messagebox.showerror("Błąd", f"Wystąpił błąd podczas zapisywania danych do pliku. Błąd: {e}")
+
+
+def save_yaml_file(file_path, data):
+    try:
+        with open(file_path, 'w') as file:
+            yaml.dump(data, file)
+        messagebox.showinfo("Zapisywanie danych", "Dane zostały zapisane do pliku YAML.")
+    except FileNotFoundError:
+        messagebox.showerror("Błąd", "Nie znaleziono pliku.")
+    except Exception as e:
+        messagebox.showerror("Błąd", f"Wystąpił błąd podczas zapisywania danych do pliku. Błąd: {e}")
+
+
+def save_xml_file(file_path, data):
+    try:
+        root = dict_to_xml(data)
+        tree = ET.ElementTree(root)
+        tree.write(file_path, encoding="utf-8", xml_declaration=True)
+        messagebox.showinfo("Zapisywanie danych", "Dane zostały zapisane do pliku XML.")
+    except FileNotFoundError:
+        messagebox.showerror("Błąd", "Nie znaleziono pliku.")
+    except Exception as e:
+        messagebox.showerror("Błąd", f"Wystąpił błąd podczas zapisywania danych do pliku. Błąd: {e}")
+
+
+def dict_to_xml(data):
+    root = ET.Element("root")
+    dict_to_xml_recursive(data, root)
+    return root
+
+
+def dict_to_xml_recursive(data, parent):
+    if isinstance(data, dict):
+        for key, value in data.items():
+            element = ET.SubElement(parent, str(key))
+            dict_to_xml_recursive(value, element)
+    elif isinstance(data, list):
+        for item in data:
+            element = ET.SubElement(parent, "item")
+            dict_to_xml_recursive(item, element)
+    else:
+        parent.text = str(data)
+
+
+def verify_file_syntax():
+    file_path = filedialog.askopenfilename(title="Wybierz plik JSON, YAML lub XML",
+                                           filetypes=(("JSON Files", "*.json"),
+                                                      ("YAML Files", "*.yml;*.yaml"),
+                                                      ("XML Files", "*.xml")))
+    if file_path:
+        if file_path.endswith(".json"):
+            data = load_json_file(file_path)
+        elif file_path.endswith(".yml") or file_path.endswith(".yaml"):
+            data = load_yaml_file(file_path)
+        elif file_path.endswith(".xml"):
+            data = load_xml_file(file_path)
+        else:
+            messagebox.showerror("Błąd", "Nieobsługiwany format pliku. Obsługiwane formaty: .json, .yml, .yaml, .xml")
+            return
+
+        if data:
+            output_file_path = filedialog.asksaveasfilename(title="Zapisz jako",
+                                                            filetypes=(("JSON Files", "*.json"),
+                                                                       ("YAML Files", "*.yml;*.yaml"),
+                                                                       ("XML Files", "*.xml")))
+            if output_file_path:
+                if output_file_path.endswith(".json"):
+                    save_json_file(output_file_path, data)
+                elif output_file_path.endswith(".yml") or output_file_path.endswith(".yaml"):
+                    save_yaml_file(output_file_path, data)
+                elif output_file_path.endswith(".xml"):
+                    save_xml_file(output_file_path, data)
+                else:
+                    messagebox.showerror("Błąd", "Nieobsługiwany format pliku wyjściowego. Obsługiwane formaty: .json, .yml, .yaml, .xml")
+
+
+# Tworzenie głównego okna
+window = tk.Tk()
+window.title("Aplikacja do wczytywania i zapisywania danych")
+window.geometry("400x200")
+
+# Instrukcja
+label_manual = tk.Label(window, text="Program działa w następujący sposób:\n1) Wybieramy plik, z którego pobierane są dane.\n2) Wybieramy plik, do którego dane zostaną zapisane \n lub tworzymy nowy plik podając 'nazwa.rozszerzenie'.")
+label_manual.pack(pady=10)
+
+# Przycisk
+btn_verify_syntax = tk.Button(window, text="Wczytaj i zapisz dane", command=verify_file_syntax)
+btn_verify_syntax.pack(pady=10)
+
+window.mainloop()
